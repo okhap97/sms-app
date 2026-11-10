@@ -1,24 +1,42 @@
+
 name: Build APK
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 17
-      - uses: gradle/actions/setup-gradle@v4
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Find APK files
+        run: |
+          echo "APK 파일 검색 시작"
+          find . -type f -name "*.apk" -print
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
-          gradle-version: 8.9
-      - run: gradle assembleDebug -Pandroid.useAndroidX=true
-      - uses: actions/upload-artifact@v4
-        with:
-          name: sms-app-apk
-          path: build/outputs/apk/debug/app-debug.apk
+          name: SmsApp-debug
+          path: '**/build/outputs/apk/debug/*.apk'
+          if-no-files-found: error
