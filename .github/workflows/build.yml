@@ -11,30 +11,35 @@ jobs:
     name: Build APK
     runs-on: ubuntu-latest
     
-    # 이전 빌드 실패 시 Node.js Deprecation 경고가 있었으므로,
-    # 명시적으로 Node.js 버전을 지정하여 빌드 환경 안정성을 확보합니다.
+    # 이전 답변에서 발생했던 Node.js 20 Deprecation 경고를
+    # 근본적으로 예방하기 위해, 워크플로가 실행되는 컨테이너 환경의 Node.js 버전을
+    # 명시적으로 'node:20'으로 고정합니다.
     container:
-      image: node:20 # 또는 필요에 따라 'node:18', 'node:22' 등을 사용
+      image: node:20 # 필요에 따라 'node:18', 'node:22' 등으로 변경 가능
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Java 설치 액션을 최 최신 v5로 유지합니다.
+      # Java 설치 액션을 최신 v5로 유지합니다.
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      # Setup Gradle 액션 v4를 유지하되, 캐시 기능을 추가합니다.
-      # 이를 통해 동일한 의존성을 다시 다운로드하지 않아 빌드 시간이 단축됩니다.
+      # Setup Gradle 액션 v4를 유지하되, 캐시 기능과 함께
+      # 누락된 gradle-wrapper.jar 파일을 자동으로 다운로드하도록 설정합니다.
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: wrapper
           # Gradle 캐시를 사용하여 빌드 속도를 향상시킵니다.
           cache-disabled: false
+          # 누락된 gradle-wrapper.jar 파일을 
+          # 빌드 시작 시 자동으로 다운로드하여 빌드를 진행합니다.
+          # 이 설정이 빠지면 이전과 같은 'Error: gradle-wrapper.jar not found.' 에러가 발생합니다.
+          gradle-wrapper-jar-disabled: false
 
       - name: Build APK
         run: |
@@ -49,7 +54,7 @@ jobs:
           echo "APK 파일 검색 시작"
           find . -type f -name "*.apk" -print
 
-      # Artifact 업로드 액션 최 최신 v4를 유지합니다.
+      # Artifact 업로드 액션을 최신 v4로 유지합니다.
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
