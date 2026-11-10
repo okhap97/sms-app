@@ -1,31 +1,46 @@
-
-name: Build APK
-
+name: Android Build
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
-
+  pull_request:
+    branches:
+      - main
 jobs:
   build:
+    name: Build APK
     runs-on: ubuntu-latest
+    
+    # 이전 빌드 실패 시 Node.js Deprecation 경고가 있었으므로,
+    # 명시적으로 Node.js 버전을 지정하여 빌드 환경 안정성을 확보합니다.
+    container:
+      image: node:20 # 또는 필요에 따라 'node:18', 'node:22' 등을 사용
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Java 설치 액션을 최 최신 v5로 유지합니다.
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
+      # Setup Gradle 액션 v4를 유지하되, 캐시 기능을 추가합니다.
+      # 이를 통해 동일한 의존성을 다시 다운로드하지 않아 빌드 시간이 단축됩니다.
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: wrapper
+          # Gradle 캐시를 사용하여 빌드 속도를 향상시킵니다.
+          cache-disabled: false
 
       - name: Build APK
         run: |
+          # 이 스크립트 실행 전 프로젝트 최상위에 `gradlew` 파일이
+          # 실행 권한(+x)을 가지고 존재해야 합니다. 만약 실패했다면,
+          # 이전 안내를 따라 `gradlew` 파일을 먼저 생성해 주세요.
           chmod +x gradlew
           ./gradlew assembleDebug
 
@@ -34,9 +49,10 @@ jobs:
           echo "APK 파일 검색 시작"
           find . -type f -name "*.apk" -print
 
+      # Artifact 업로드 액션 최 최신 v4를 유지합니다.
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: SmsApp-debug
-          path: '**/build/outputs/apk/debug/*.apk'
+          path: '** /build/outputs/apk/debug/ *.apk' # 띄어쓰기 주의: '** /build/outputs/apk/debug/ *.apk' (붙여쓰면 마크다운 인식 안됨)
           if-no-files-found: error
